@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "skills": {
+    "antislop-layoutmobile": {
+      "source": "miqdadbadjuber/anti-slop",
+      "commit": "7f6a03df2931c12cb244dc4ab14ee4866b0ac2ba",
+      "sourceType": "github",
+      "skillPath": "skills/antislop-layoutmobile/SKILL.md",
+      "computedHash": "c3f54f8a065e9c371a9c5bb5076b41fc06bbeaeaca125f35459a4b8b17be34f2"
+    },
+    "clean-code": {
+      "source": "sickn33/agentic-awesome-skills",
+      "commit": "166f581cfdc37d94cf56efe4454fb06a5759776c",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code/SKILL.md",
+      "computedHash": "12447e66c9334fa608ab29b45ea8076770590d1ccbf2ee705c24cdf24496643d"
+    },
+    "ponytail": {
+      "source": "DietrichGebert/ponytail",
+      "commit": "ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10",
+      "sourceType": "github",
+      "skillPath": "skills/ponytail/SKILL.md",
+      "computedHash": "56d72677aca02689ac89bd48734e8c19b40ab86716d1257eaf5f1238b43cda6b"
+    }
+  }
+}
