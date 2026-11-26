@@ -1,0 +1,499 @@
+openapi: 3.0.3
+info:
+  title: V.I.T.A. Backend
+  version: 2.0.0
+  description: Foundation API. Synthetic development data only. No clinical decision rules.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/patients:
+    get:
+      operationId: listPatients
+      description: Nurse only, facility scoped. Query search, limit (1–100), offset.
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createPatient
+      requestBody: { $ref: '#/components/requestBodies/Patient' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/patients/{id}:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: getPatient
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      operationId: updatePatient
+      description: Full demographic replacement; version required. MRN immutable.
+      requestBody: { $ref: '#/components/requestBodies/Patient' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/patients/{id}/encounters:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: patientEncounters
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters:
+    get:
+      operationId: listEncounters
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createEncounter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patient_id]
+              properties:
+                patient_id: { type: string, format: uuid }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: getEncounter
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/history:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: encounterHistory
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/start:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    post:
+      operationId: startEncounter
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/cancel:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    post:
+      operationId: cancelEncounter
+      description: Reason required.
+      requestBody: { $ref: '#/components/requestBodies/Transition' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/transcriptions:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: listTranscriptions
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createTranscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_reference_id, transcript, language, source]
+              additionalProperties: false
+              properties:
+                client_reference_id: { type: string, format: uuid }
+                transcript: { type: string, minLength: 1, maxLength: 8000 }
+                language: { type: string, enum: [id-ID, en-US] }
+                source: { type: string, enum: [on_device_stt, manual_text] }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/extractions:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: listExtractions
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      operationId: enqueueExtraction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [request_id, transcription_id]
+              additionalProperties: false
+              properties:
+                request_id: { type: string, format: uuid }
+                transcription_id: { type: string, format: uuid }
+      responses:
+        '202': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/extractions/{extraction_id}:
+    parameters:
+      - { $ref: '#/components/parameters/UserID' }
+      - { name: extraction_id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getExtraction
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/assessments:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    post:
+      operationId: createManualAssessment
+      requestBody: { $ref: '#/components/requestBodies/Assessment' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/assessment:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: currentAssessment
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      operationId: reviseAssessment
+      requestBody: { $ref: '#/components/requestBodies/Assessment' }
+      responses:
+        '201': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/assessment/history:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    get:
+      operationId: assessmentHistory
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/encounters/{id}/assessment/verify:
+    parameters: [{ $ref: '#/components/parameters/UserID' }]
+    post:
+      operationId: verifyAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, assessment_id]
+              properties:
+                version: { type: integer, minimum: 1 }
+                assessment_id: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        default: { $ref: '#/components/responses/Error' }
+  /health/live:
+    get:
+      operationId: liveness
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+  /health/ready:
+    get:
+      operationId: readiness
+      security: []
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, maxLength: 254 }
+                password: { type: string, maxLength: 128, format: password }
+      responses:
+        '200': { $ref: '#/components/responses/Tokens' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/v1/auth/refresh:
+    post:
+      operationId: refresh
+      description: Single-use rotation. Reuse revokes entire family. Absolute family lifetime is seven days.
+      security: []
+      requestBody: { $ref: '#/components/requestBodies/Refresh' }
+      responses:
+        '200': { $ref: '#/components/responses/Tokens' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/v1/auth/logout:
+    post:
+      operationId: logout
+      description: Revokes supplied refresh token family belonging to authenticated user. Access JWT remains valid until expiry or account token-version change.
+      requestBody: { $ref: '#/components/requestBodies/Refresh' }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/v1/auth/me:
+    get:
+      operationId: currentUser
+      responses:
+        '200': { $ref: '#/components/responses/User' }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/v1/auth/change-password:
+    post:
+      operationId: changePassword
+      description: Invalidates all access and refresh sessions. Login again after success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, maxLength: 128, format: password }
+                new_password: { type: string, minLength: 12, maxLength: 128, format: password }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      description: Admin only. Results restricted to current facility, ordered by creation timestamp and ID.
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 } }
+      responses:
+        '200':
+          description: Facility users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, request_id]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/User' } }
+                  request_id: { type: string, format: uuid }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: createUser
+      description: Admin only. Facility assigned from authenticated administrator. Public registration is unavailable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUser' }
+      responses:
+        '201': { $ref: '#/components/responses/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/users/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/UserID' }
+    get:
+      operationId: getUser
+      description: Admin only. Cross-facility IDs return 404.
+      responses:
+        '200': { $ref: '#/components/responses/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      operationId: updateUser
+      description: Admin only; target must be nurse or queue_operator in same facility. Invalidates target sessions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUser' }
+      responses:
+        '200': { $ref: '#/components/responses/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/users/{id}/active:
+    parameters:
+      - { $ref: '#/components/parameters/UserID' }
+    patch:
+      operationId: setUserActive
+      description: Admin only. Cannot modify administrators. Invalidates target sessions on activation and deactivation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [active]
+              properties:
+                active: { type: boolean }
+      responses:
+        '200': { $ref: '#/components/responses/User' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    UserID: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+  requestBodies:
+    Patient:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [sex, identity_status]
+            properties:
+              medical_record_number: { type: string, maxLength: 64, description: Creation only }
+              full_name: { type: string, nullable: true, maxLength: 150 }
+              birth_date: { type: string, format: date, nullable: true }
+              sex: { type: string, enum: [male, female, other, unknown] }
+              identity_status: { type: string, enum: [identified, temporary] }
+              patient_ihs_number: { type: string, nullable: true, maxLength: 100 }
+              version: { type: integer, minimum: 1, description: Required for updates only }
+    Transition:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version]
+            properties:
+              version: { type: integer, minimum: 1 }
+              reason: { type: string, maxLength: 500 }
+    Assessment:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version, data]
+            properties:
+              version: { type: integer, minimum: 1 }
+              source_extraction_id: { type: string, format: uuid, nullable: true }
+              data:
+                type: object
+                description: Clinical schema 1.0; see docs/clinical-extraction-schema.md and generated internal FastAPI OpenAPI for full field definitions.
+    Refresh:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [refresh_token]
+            properties:
+              refresh_token: { type: string, minLength: 43, maxLength: 43 }
+  schemas:
+    User:
+      type: object
+      required: [id, facility_id, email, name, role, active, practitioner_ihs]
+      properties:
+        id: { type: string, format: uuid }
+        facility_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { type: string, enum: [admin, nurse, queue_operator] }
+        active: { type: boolean }
+        practitioner_ihs: { type: string, nullable: true }
+    UpdateUser:
+      type: object
+      additionalProperties: false
+      required: [email, name, role]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        role: { type: string, enum: [nurse, queue_operator] }
+        practitioner_ihs: { type: string, nullable: true, maxLength: 100 }
+    CreateUser:
+      type: object
+      additionalProperties: false
+      required: [email, name, role, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        role: { type: string, enum: [nurse, queue_operator] }
+        practitioner_ihs: { type: string, nullable: true, maxLength: 100 }
+        password: { type: string, minLength: 12, maxLength: 128, format: password }
+    Error:
+      type: object
+      required: [error, request_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+        request_id: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Safe error envelope. Global errors also include 413 request_too_large, 405 method_not_allowed, and 500 internal_error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Success:
+      description: Success envelope
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, request_id]
+            properties:
+              data: { type: object }
+              request_id: { type: string, format: uuid }
+    User:
+      description: User envelope; hashes and session versions are never returned
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, request_id]
+            properties:
+              data: { $ref: '#/components/schemas/User' }
+              request_id: { type: string, format: uuid }
+    Tokens:
+      description: Access and refresh credentials. Do not log or place in URLs.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [data, request_id]
+            properties:
+              request_id: { type: string, format: uuid }
+              data:
+                type: object
+                required: [access_token, refresh_token, token_type, expires_in]
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+                  token_type: { type: string, enum: [Bearer] }
+                  expires_in: { type: integer, enum: [900] }

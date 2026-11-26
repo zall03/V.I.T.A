@@ -1,0 +1,12 @@
+# Resume / remaining work
+
+Read root AGENTS, canonical PRD and all tracking before changes.
+Facility scoped read/admin update and aliases implemented; unit checks passed.
+Immediate next: configurable auth TTLs, facility integration tests and OpenAPI
+entries for new aliases/facility routes. Database test infrastructure still required.
+TTL configuration now implemented and tested. Remaining immediate tasks are facility
+integration tests and OpenAPI updates including configurable expires_in.
+Then close Phase 2 schema/provenance/worker gaps, native STT inspection, source-gated
+triage framework, queue, WebSocket, FHIR client/outbox, sync, CI and E2E.
+Do not treat planning or disabled endpoints as completed domain functionality.
+Detailed roadmap: MASTER_PLAN.md; actual baseline evidence: TEST_REPORT.md.
