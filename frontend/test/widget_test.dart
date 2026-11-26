@@ -1,30 +1,48 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:vita_mobile/main.dart';
+import 'package:vita_mobile/core/theme/app_theme.dart';
+import 'package:vita_mobile/providers/triage_provider.dart';
+import 'package:vita_mobile/screens/auth/login_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Login to Queue, Public TV, and Triase Baru flow works',
+      (WidgetTester tester) async {
+    final provider = TriageProvider();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: LoginScreen(provider: provider),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify Login Screen elements
+    expect(find.text('V.I.T.A.'), findsOneWidget);
+    expect(find.text('Mulai Shift'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Tap Mulai Shift -> navigates to MainNavigationScreen (QueueDashboardScreen)
+    await tester.ensureVisible(find.text('Mulai Shift'));
+    await tester.tap(find.text('Mulai Shift'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Antrean Triase'), findsWidgets);
+    expect(find.text('Monitor TV Ruang Tunggu IGD • Aktif'), findsOneWidget);
+    expect(find.text('Triase Baru'), findsOneWidget);
+
+    // Tap Lihat TV -> opens PublicTvScreen
+    await tester.tap(find.text('Lihat TV'));
+    await tester.pumpAndSettle();
+    expect(find.text('TV Ruang Tunggu IGD • Live'), findsOneWidget);
+
+    // Return to Nurse Mode
+    await tester.tap(find.text('Mode Perawat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Monitor TV Ruang Tunggu IGD • Aktif'), findsOneWidget);
+
+    // Tap Triase Baru -> opens Step 1/4
+    await tester.tap(find.text('Triase Baru'));
+    await tester.pumpAndSettle();
+    expect(find.text('Informasi Awal Pasien'), findsOneWidget);
+    expect(find.text('LANGKAH 1/4'), findsOneWidget);
   });
 }
