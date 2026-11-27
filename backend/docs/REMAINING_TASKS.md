@@ -1,5 +1,9 @@
 # Resume / remaining work
 
+Run new deployment workflow on main after configuring development environment and
+server env; diagnose CI/database errors without skipping tests. Add HTTPS ingress
+and Flutter web hosting separately. See SSH_DEPLOYMENT.md.
+
 Live integration next: run actual stack E2E, add workspace widget tests, polish native
 field editor and resume/retry/history flows. LIVE_FRONTEND.md records limitations.
 

@@ -1,5 +1,9 @@
 # Project status
 
+SSH automation added: .github/workflows/deploy.yml and scripts/deploy-server.sh.
+Push main triggers test gate then development deployment. Remote execution NOT TESTED.
+One-time secrets/server environment setup required; see SSH_DEPLOYMENT.md.
+
 Live frontend workspace now default; retained original demo behind DEMO_MODE=true.
 Backend clinical HTTP workflow wired, but database/AI end-to-end NOT TESTED.
 See LIVE_FRONTEND.md; interim structured JSON editor requires further UX work.

@@ -1,5 +1,9 @@
 # Implementation log
 
+Added automatic main-branch SSH deployment with pinned actions, isolated PostgreSQL
+CI tests, verified SSH host keys, release directories, persistent server env, explicit
+migrations and health checks. No push/deployment executed during implementation.
+
 Live workspace added: login, patients, temporary intake, encounter, transcript, AI
 polling, revision and verification via API. No fabricated triage category. Original
 demo preserved explicitly. Analyze passed and 3 existing tests passed.

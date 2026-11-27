@@ -1,5 +1,8 @@
 # Actual test evidence
 
+SSH workflow: source added; GitHub Actions execution, shell runtime and remote server
+deployment NOT TESTED in this session. No credentials accessed or external deploy run.
+
 Frontend alignment: Flutter 3.50.1, Dart 3.14.0. `flutter analyze`: no issues
 (5.2s). `flutter test`: 3 passed (existing UI flow + 2 API transport tests).
 

@@ -1,5 +1,8 @@
 # Blockers
 
+SSH workflow requires GitHub development secrets/variables, server Docker permissions
+and /opt/vita/shared/backend.env; remote deployment remains unverified.
+
 - PostgreSQL test connection and Docker executable unavailable in current environment.
 - WHO IITT exact source mapping and clinical approval not supplied; real rules disabled.
 - Facility queue priority/tie-break/reassessment policy not approved.
