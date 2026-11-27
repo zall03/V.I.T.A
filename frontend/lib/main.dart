@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import 'core/theme/app_theme.dart';
 import 'providers/triage_provider.dart';
 import 'screens/auth/splash_screen.dart';
+import 'screens/live/clinical_workspace.dart';
 
 void main() {
   runApp(const VitaApp());
@@ -35,7 +37,9 @@ class _VitaAppState extends State<VitaApp> {
       title: 'V.I.T.A. - Triase Suara & Dokumentasi Klinis IGD',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: SplashScreen(provider: _triageProvider),
+      home: const bool.fromEnvironment('DEMO_MODE', defaultValue: false)
+          ? SplashScreen(provider: _triageProvider)
+          : const ClinicalWorkspace(),
     );
   }
 }

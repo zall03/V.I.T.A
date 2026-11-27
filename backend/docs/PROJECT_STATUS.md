@@ -1,5 +1,12 @@
 # Project status
 
+Live frontend workspace now default; retained original demo behind DEMO_MODE=true.
+Backend clinical HTTP workflow wired, but database/AI end-to-end NOT TESTED.
+See LIVE_FRONTEND.md; interim structured JSON editor requires further UX work.
+
+Frontend increment: API adapter implemented, analyze and 3 tests passed. Screen
+binding remains incomplete; no claim of frontend/backend end-to-end success.
+
 Current phase: foundation/Phase 2 gap closure under master PRD.
 
 | Area | Status | Evidence |

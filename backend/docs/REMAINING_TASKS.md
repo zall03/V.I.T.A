@@ -1,5 +1,12 @@
 # Resume / remaining work
 
+Live integration next: run actual stack E2E, add workspace widget tests, polish native
+field editor and resume/retry/history flows. LIVE_FRONTEND.md records limitations.
+
+Active user request: align updated frontend with existing backend. API adapter added;
+next wire explicit live login/profile and clinical DTO/workflow without reusing demo
+clinical classifications. See FRONTEND_ALIGNMENT.md. Entire screen binding pending.
+
 Read root AGENTS, canonical PRD and all tracking before changes.
 Facility scoped read/admin update and aliases implemented; unit checks passed.
 Immediate next: configurable auth TTLs, facility integration tests and OpenAPI

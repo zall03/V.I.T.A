@@ -1,5 +1,8 @@
 # Actual test evidence
 
+Frontend alignment: Flutter 3.50.1, Dart 3.14.0. `flutter analyze`: no issues
+(5.2s). `flutter test`: 3 passed (existing UI flow + 2 API transport tests).
+
 Master baseline on Windows:
 - `go build ./...`: passed.
 - `go test ./...`: passed (some cached).

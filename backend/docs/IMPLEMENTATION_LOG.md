@@ -1,5 +1,14 @@
 # Implementation log
 
+Live workspace added: login, patients, temporary intake, encounter, transcript, AI
+polling, revision and verification via API. No fabricated triage category. Original
+demo preserved explicitly. Analyze passed and 3 existing tests passed.
+
+## Frontend alignment increment
+Added backend API adapter and two transport tests; pinned http dependency. Existing
+UI flow test retained. Flutter analyze and all three tests passed. Adapter not wired
+to demo screens yet. See FRONTEND_ALIGNMENT.md for exact remaining integration.
+
 ## Master baseline
 - Read owner AGENTS and full 450-line PRD, README and prior report.
 - Inspected Git, existing migrations/auth/API/Compose through previous context and
