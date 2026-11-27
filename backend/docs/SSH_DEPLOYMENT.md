@@ -4,9 +4,11 @@ Push to main runs Go build/vet/unit/integration tests with disposable PostgreSQL
 Python tests. Deployment only runs after tests pass. Actions pinned by commit.
 Manual workflow dispatch also deploys main only. No production environment configured.
 
-GitHub Environment `development` variables: DEPLOY_HOST, DEPLOY_USER (azureuser),
+GitHub repository Actions variables: DEPLOY_HOST, DEPLOY_USER (azureuser),
 DEPLOY_PORT (22), DEPLOY_PATH (/opt/vita).
 Secrets: DEPLOY_SSH_KEY (dedicated private key), DEPLOY_KNOWN_HOSTS (verified host key).
+Configure under Settings > Secrets and variables > Actions. The deploy job does not
+reference a GitHub Environment; environment approvals/protection rules do not apply.
 Install corresponding public key in server user's ~/.ssh/authorized_keys. Verify SSH
 host fingerprints using Azure console/trusted channel before storing known_hosts.
 Do not disable host verification. Server requires Docker Compose v2 with --wait,
