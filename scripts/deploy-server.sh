@@ -11,13 +11,16 @@ if [[ ! -s "$envfile" ]]; then
   exit 1
 fi
 chmod 600 "$envfile"
-docker compose version
-docker info > /dev/null
 cd "$release/backend"
 ln -sfn "$envfile" .env
 # Stable project name preserves network/volume identity across releases.
 compose=(docker compose --project-name vita --env-file "$envfile" -f "$release/backend/docker-compose.yml")
+echo 'Checking Compose with explicit deployment configuration'
+"${compose[@]}" version
+docker info > /dev/null
+echo 'Validating deployment configuration'
 "${compose[@]}" config --quiet
+echo 'Building application images'
 "${compose[@]}" build
 "${compose[@]}" up -d --wait --wait-timeout 120 db
 # Run migrations explicitly on every release; no rollback/down or volume deletion.
