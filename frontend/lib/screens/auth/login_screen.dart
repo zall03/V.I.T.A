@@ -62,21 +62,118 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  void _showFingerprintModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.14),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryTint,
+                  border: Border.all(color: AppColors.primaryBorder, width: 2),
+                ),
+                child: Center(
+                  child: Container(
+                    width: 62,
+                    height: 62,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryBlue,
+                    ),
+                    child: const Icon(
+                      Icons.fingerprint_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                '✓ Sidik Jari Perawat Terverifikasi',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navyDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${widget.provider.nurseFullName} • ID: ${_nurseIdController.text}\n$_selectedShift',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _handleStartShift();
+                  },
+                  child: const Text(
+                    'Masuk ke Antrean Triase IGD →',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
               // Logo Card
               Container(
-                width: 92,
-                height: 92,
+                width: 88,
+                height: 88,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -94,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               const Text(
                 'V.I.T.A.',
                 style: TextStyle(
@@ -114,7 +211,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 44),
+              const SizedBox(height: 18),
+              // Registered Nurse ID Banner (matching Login - 1. Ketik ID Perawat.png)
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryPillBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '✓ ID Perawat ${_nurseIdController.text} Terdaftar • Ketuk Kotak PIN di Bawah',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDeep,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               // Login Form Card
               Container(
                 width: double.infinity,
@@ -134,7 +251,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // SHIFT Dropdown
                     const Text(
                       'SHIFT',
                       style: TextStyle(
@@ -146,11 +262,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     InkWell(
-                      onTap: () => setState(() => _isDropdownOpen = !_isDropdownOpen),
+                      onTap: () =>
+                          setState(() => _isDropdownOpen = !_isDropdownOpen),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
                         decoration: BoxDecoration(
                           color: AppColors.inputFill,
                           borderRadius: BorderRadius.circular(12),
@@ -241,7 +359,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                     const SizedBox(height: 18),
-                    // ID PERAWAT
                     const Text(
                       'ID PERAWAT',
                       style: TextStyle(
@@ -257,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.inputFill,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: AppColors.primaryBlue, width: 1.5),
                       ),
                       child: Row(
                         children: [
@@ -270,6 +387,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Expanded(
                             child: TextField(
                               controller: _nurseIdController,
+                              onChanged: (_) => setState(() {}),
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -278,7 +396,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
                               ),
                             ),
                           ),
@@ -291,7 +410,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    // MASUKAN PIN
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -308,7 +426,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           onTap: () => setState(() => _showPin = !_showPin),
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
                             child: Row(
                               children: [
                                 Icon(
@@ -337,14 +456,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       children: List.generate(4, (index) {
                         final isActive = _activePinIndex == index;
-                        final obscureBox = !_showPin || (index == 3 && !_pinFocusNodes[3].hasFocus);
+                        final obscureBox =
+                            !_showPin || (index == 3 && !_pinFocusNodes[3].hasFocus);
                         return Expanded(
                           child: Padding(
                             padding: EdgeInsets.only(right: index < 3 ? 10 : 0),
                             child: Container(
                               height: 54,
                               decoration: BoxDecoration(
-                                color: isActive ? Colors.white : AppColors.inputFill,
+                                color: isActive
+                                    ? Colors.white
+                                    : AppColors.inputFill,
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isActive
@@ -372,7 +494,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   border: InputBorder.none,
                                   isDense: true,
                                 ),
-                                onTap: () => setState(() => _activePinIndex = index),
+                                onTap: () =>
+                                    setState(() => _activePinIndex = index),
                                 onChanged: (val) {
                                   if (val.isNotEmpty && index < 3) {
                                     _pinFocusNodes[index + 1].requestFocus();
@@ -387,8 +510,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
-              // Mulai Shift CTA Button
+              const SizedBox(height: 18),
+              // Primary CTA: Mulai Shift
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -414,6 +537,36 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(width: 8),
                       Icon(Icons.arrow_forward_rounded, size: 20),
                     ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Secondary CTA: Masuk Cepat dengan Sidik Jari (1-Sentuh)
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTintSoft,
+                    foregroundColor: AppColors.navyDark,
+                    side: const BorderSide(color: AppColors.primaryBorderStrong),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _showFingerprintModal,
+                  icon: const Icon(
+                    Icons.fingerprint_rounded,
+                    color: AppColors.primaryBlue,
+                    size: 22,
+                  ),
+                  label: const Text(
+                    'Masuk Cepat dengan Sidik Jari (1–Sentuh)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.navyDark,
+                    ),
                   ),
                 ),
               ),

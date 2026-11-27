@@ -4,6 +4,7 @@ import '../../models/patient_triage.dart';
 import '../../models/triage_enums.dart';
 import '../../providers/triage_provider.dart';
 import '../../widgets/vita_step_app_bar.dart';
+import '../profile/nurse_profile_screen.dart';
 
 class TriageStep4ResultScreen extends StatefulWidget {
   final TriageProvider provider;
@@ -112,10 +113,18 @@ class _TriageStep4ResultScreenState extends State<TriageStep4ResultScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const VitaStepAppBar(
+      appBar: VitaStepAppBar(
         title: 'Rekam Suara Triase',
         stepText: 'Langkah 4/4',
         progress: 1.0,
+        onProfileTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => NurseProfileScreen(provider: widget.provider),
+            ),
+          );
+        },
       ),
       body: Column(
         children: [

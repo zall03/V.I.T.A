@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/patient_triage.dart';
 import '../../providers/triage_provider.dart';
 import '../../widgets/vita_step_app_bar.dart';
+import '../profile/nurse_profile_screen.dart';
 
 class SatusehatFhirScreen extends StatefulWidget {
   final TriageProvider provider;
@@ -21,7 +22,7 @@ class SatusehatFhirScreen extends StatefulWidget {
 }
 
 class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
-  int _selectedTab = 3; // Default: Observation (matching template)
+  int _selectedTab = 0; // 0: Paket (3), 1: Pasien, 2: Kunjungan, 3: Tanda Vital (6)
   late bool _isSentSuccess;
 
   @override
@@ -30,95 +31,103 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
     _isSentSuccess = widget.patient.satusehatSynced;
   }
 
+  String _titleForTab(int tab) {
+    final p = widget.patient;
+    switch (tab) {
+      case 0:
+        return 'Paket Gabungan (Bundle IGD ${p.queueNumber})';
+      case 1:
+        return 'Data Identitas Pasien (Patient)';
+      case 2:
+        return 'Kunjungan IGD (Encounter)';
+      default:
+        return 'Hasil Tanda Vital (Observation)';
+    }
+  }
+
+  String _subtitleForTab(int tab) {
+    final p = widget.patient;
+    switch (tab) {
+      case 0:
+        return '🕒 Selesai: ${p.verifiedAt}  •  ✓ Gabungan 3 Data Medis • Validasi 100%';
+      case 1:
+        return '🕒 Tercatat: ${p.verifiedAt}  •  ✓ NIK Terverifikasi Dukcapil';
+      case 2:
+        return '🕒 Tercatat: ${p.verifiedAt}  •  ✓ ${p.bedLabel} • ${p.priority.levelText}';
+      default:
+        return '🕒 Selesai: ${p.verifiedAt}  •  ✓ 6 Parameter Fisik • Standar Kemenkes';
+    }
+  }
+
   String _buildJsonForTab(int tab) {
     final p = widget.patient;
     late final Map<String, dynamic> payload;
 
     switch (tab) {
-      case 0: // Bundle (3)
+      case 0:
         payload = {
-          "resourceType": "Bundle",
-          "id": "BND-IGD-${p.id}",
-          "type": "transaction",
-          "total": 3,
-          "entry": [
-            {"fullUrl": "Patient/${p.id}", "resourceType": "Patient"},
-            {"fullUrl": "Encounter/IGD-202505", "resourceType": "Encounter"},
-            {"fullUrl": "Observation/obs-spo2-${p.id}", "resourceType": "Observation"},
-          ]
+          "jenisDokumen": "PaketPengiriman (Bundle)",
+          "idPaket": "paket-triase-igd-${p.id}",
+          "waktuKirim": "2026-11-26 ${p.verifiedAt}",
+          "isiPaket": [
+            {
+              "dokumen_1": "Data Pasien (Patient)",
+              "id": "Pasien/${p.id} – ${p.name} (${p.ageYears} th)"
+            },
+            {
+              "dokumen_2": "Kunjungan IGD (Encounter)",
+              "id": "Kunjungan/IGD-${p.id} – ${p.bedLabel}"
+            },
+            {
+              "dokumen_3": "Tanda Vital (Observation)",
+              "id": "TandaVital/${p.id} – 6 Pemeriksaan Fisik"
+            }
+          ],
+          "tujuanServer": "SATUSEHAT Kemenkes RI"
         };
         break;
-      case 1: // Patient
+      case 1:
         payload = {
           "resourceType": "Patient",
           "id": p.id,
           "identifier": [
-            {"system": "https://fhir.kemkes.go.id/id/nik", "value": "3209150408810002"}
+            {
+              "system": "https://fhir.kemkes.go.id/id/nik",
+              "value": "3209150408810002"
+            }
           ],
           "name": [
             {"text": p.name}
           ],
-          "gender": p.gender == 'Laki-laki' ? 'male' : 'female',
+          "gender": p.gender.contains('Perempuan') ? 'female' : 'male',
+          "ageGroupIITT": p.ageGroup.code,
         };
         break;
-      case 2: // Encounter
+      case 2:
         payload = {
           "resourceType": "Encounter",
-          "id": "IGD-202505",
-          "status": "in-progress",
+          "id": "IGD-2026${p.id}",
+          "status": p.isCompleted ? "finished" : "in-progress",
           "class": {"code": "EMER", "display": "emergency"},
           "subject": {"reference": "Patient/${p.id}"},
+          "location": p.bedLabel,
           "priority": {"text": p.priority.detailBadge},
         };
         break;
-      default: // Observation
+      default:
         payload = {
-          "resourceType": "Observation",
-          "id": "obs-spo2-${p.id}",
-          "status": "final",
-          "category": [
-            {
-              "coding": [
-                {
-                  "system": "http://terminology.hl7.org/CodeSystem/observation-category",
-                  "code": "vital-signs",
-                  "display": "Vital Signs"
-                }
-              ]
-            }
-          ],
-          "code": {
-            "coding": [
-              {
-                "system": "http://loinc.org",
-                "code": "2708-6",
-                "display": "Oxygen saturation in Arterial blood"
-              }
-            ],
-            "text": "Saturasi Oksigen (SpO2)"
-          },
-          "subject": {
-            "reference": "Patient/${p.id}",
-            "display": "Tn. Pasien ${p.id}"
-          },
-          "valueQuantity": {
-            "value": p.vitals.spo2,
-            "unit": "%",
-            "system": "http://unitsofmeasure.org",
-            "code": "%"
-          },
-          "interpretation": [
-            {
-              "coding": [
-                {
-                  "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
-                  "code": "L",
-                  "display": "Low"
-                }
-              ],
-              "text": p.vitals.spo2Status
-            }
-          ]
+          "jenisDokumen": "HasilTandaVital (Observation)",
+          "idPemeriksaan": "vital-igd-${p.id}",
+          "idPasien": "Pasien/${p.id} (${p.gender}, ${p.ageYears} th)",
+          "statusValidasi": "Terverifikasi Perawat & Dokter IGD",
+          "hasilPengukuran": {
+            "saturasiOksigen_SpO2": "${p.vitals.spo2}% (${p.vitals.spo2Status})",
+            "tekananDarah_TD": "${p.vitals.bpValue} mmHg (${p.vitals.bpStatus})",
+            "frekuensiNadi_HR": "${p.vitals.heartRate} x/mnt (${p.vitals.hrStatus})",
+            "lajuPernapasan_RR": "${p.vitals.respiratoryRate} x/mnt (${p.vitals.rrStatus})",
+            "suhuTubuh": "${p.vitals.tempComma} °C (${p.vitals.tempStatus})",
+            "tingkatKesadaran_AVPU": p.vitals.avpu,
+          }
         };
     }
     return const JsonEncoder.withIndent('  ').convert(payload);
@@ -143,11 +152,23 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
   Widget build(BuildContext context) {
     final p = widget.patient;
     final jsonString = _buildJsonForTab(_selectedTab);
+    final byteSize = utf8.encode(jsonString).length;
+    final sizeLabel = byteSize >= 1024
+        ? '${(byteSize / 1024).toStringAsFixed(2)} KB'
+        : '$byteSize BYTES';
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const VitaStepAppBar(
+      appBar: VitaStepAppBar(
         title: 'Payload Satusehat Fhir',
+        onProfileTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => NurseProfileScreen(provider: widget.provider),
+            ),
+          );
+        },
       ),
       body: Column(
         children: [
@@ -189,7 +210,8 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceSubtle,
                     borderRadius: BorderRadius.circular(8),
@@ -211,7 +233,7 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
           // Info Banner
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: AppColors.primaryTintSoft,
@@ -236,29 +258,30 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
               ],
             ),
           ),
-          // Resource Tabs (Bundle, Patient, Encounter, Observation)
+          // Modern Pill Resource Tabs (matching FHIR Resource Viewer _ Interactive_*.png)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: [
-                _resourceTab(0, 'Bundle (3)'),
-                _resourceTab(1, 'Patient'),
-                _resourceTab(2, 'Encounter'),
-                _resourceTab(3, 'Observation', badge: '4 Tanda Vital'),
+                _pillTab(0, 'Paket (3)'),
+                const SizedBox(width: 8),
+                _pillTab(1, 'Pasien'),
+                const SizedBox(width: 8),
+                _pillTab(2, 'Kunjungan'),
+                const SizedBox(width: 8),
+                _pillTab(3, 'Tanda Vital (6)'),
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.borderLight),
-          // Main Content Area
+          const Divider(height: 12, color: AppColors.borderLight),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_isSentSuccess) ...[
-                    // 201 Created Success Card (matching Sandbox 201 Created (Sukses).png)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -291,10 +314,10 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryBlue,
@@ -304,7 +327,8 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                           ),
                         ),
                         onPressed: () {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(context)
+                              .popUntil((route) => route.isFirst);
                         },
                         child: const Text(
                           '✓ Selesai • Kembali ke Antrean Triase IGD →',
@@ -313,14 +337,13 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                   ] else ...[
-                    // Idle State Buttons: Salin JSON & Kirim Sandbox
                     Row(
                       children: [
                         Expanded(
                           child: SizedBox(
-                            height: 48,
+                            height: 46,
                             child: OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.navyDark,
@@ -330,7 +353,7 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                                 ),
                               ),
                               onPressed: _copyJson,
-                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              icon: const Icon(Icons.copy_rounded, size: 17),
                               label: const Text('Salin JSON'),
                             ),
                           ),
@@ -338,7 +361,7 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: SizedBox(
-                            height: 48,
+                            height: 46,
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryBlue,
@@ -356,7 +379,7 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     const Center(
                       child: Text(
                         '• api-satusehat-stg.kemkes.go.id/fhir-r4/v1',
@@ -367,14 +390,72 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                   ],
-                  // JSON Preview Card
+                  // Resource Summary Header Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _titleForTab(_selectedTab),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.navyDark,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryTintSoft,
+                                borderRadius: BorderRadius.circular(8),
+                                border:
+                                    Border.all(color: AppColors.primaryBorder),
+                              ),
+                              child: const Text(
+                                'Standar FHIR R4',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primaryDeep,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 16, color: AppColors.borderLight),
+                        Text(
+                          _subtitleForTab(_selectedTab),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Dark Terminal JSON Code Viewer
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(14),
+                      color: const Color(0xFF0A192F),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,27 +464,56 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Color(0xFF1E293B)),
+                            color: Color(0xFF112240),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
                             ),
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Row(
                             children: [
-                              Text(
-                                'HL7 FHIR R4 Ready',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF38BDF8),
+                              _termDot(),
+                              const SizedBox(width: 5),
+                              _termDot(),
+                              const SizedBox(width: 5),
+                              _termDot(),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'JSON • UTF-8 • $sizeLabel',
+                                  style: const TextStyle(
+                                    fontFamily: 'Courier',
+                                    fontSize: 11,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Text(
-                                'JSON • UTF-8 • Validasi 100%',
-                                style: TextStyle(
-                                  fontFamily: 'Courier',
-                                  fontSize: 11,
-                                  color: Color(0xFF94A3B8),
+                              InkWell(
+                                onTap: _copyJson,
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E3A5F),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.copy_rounded,
+                                          size: 13, color: Color(0xFF38BDF8)),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Salin',
+                                        style: TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF38BDF8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -416,8 +526,8 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
                             style: const TextStyle(
                               fontFamily: 'Courier',
                               fontSize: 11.5,
-                              color: Color(0xFFE2E8F0),
-                              height: 1.45,
+                              color: Color(0xFF93C5FD),
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -433,51 +543,41 @@ class _SatusehatFhirScreenState extends State<SatusehatFhirScreen> {
     );
   }
 
-  Widget _resourceTab(int index, String label, {String? badge}) {
+  Widget _pillTab(int index, String label) {
     final isSelected = _selectedTab == index;
     return InkWell(
       onTap: () => setState(() => _selectedTab = index),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-              width: 2.5,
-            ),
+          color: isSelected ? AppColors.primaryTintSoft : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+            width: 1.5,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.primaryBlue : AppColors.textSecondary,
-              ),
-            ),
-            if (badge != null) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryTint,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              ),
-            ],
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color:
+                isSelected ? AppColors.primaryDeep : AppColors.textSecondary,
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _termDot() {
+    return Container(
+      width: 9,
+      height: 9,
+      decoration: const BoxDecoration(
+        color: Color(0xFF475569),
+        shape: BoxShape.circle,
       ),
     );
   }

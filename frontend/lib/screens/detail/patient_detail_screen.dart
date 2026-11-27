@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import '../../models/patient_triage.dart';
 import '../../providers/triage_provider.dart';
+import '../../widgets/audio_memo_player.dart';
+import '../../widgets/transcript_accordion.dart';
+import '../../widgets/vita_step_app_bar.dart';
+import '../../widgets/vital_history_section.dart';
+import '../profile/nurse_profile_screen.dart';
 import '../satusehat/satusehat_fhir_screen.dart';
 
 class PatientDetailScreen extends StatefulWidget {
@@ -19,21 +23,36 @@ class PatientDetailScreen extends StatefulWidget {
 }
 
 class _PatientDetailScreenState extends State<PatientDetailScreen> {
-  static const List<String> _statusOptions = [
-    'Menunggu Dokter',
-    'Sedang Ditangani Dokter',
-    'Observasi IGD',
-    'Sudah Ditangani Dokter',
+  bool _statusMenuOpen = false;
+
+  static const List<Map<String, String>> _statusItems = [
+    {
+      'status': 'Menunggu Dokter',
+      'bed': 'TERISI (Menunggu Dokter Jaga)',
+      'tv': 'Menunggu Dokter',
+    },
+    {
+      'status': 'Sedang Ditangani Dokter',
+      'bed': 'TERISI (Tindakan Resusitasi Aktif)',
+      'tv': 'Sedang Ditangani',
+    },
+    {
+      'status': 'Observasi & Stabilisasi',
+      'bed': 'TERISI (Pemantauan Monitor Vital)',
+      'tv': 'Observasi Stabil',
+    },
+    {
+      'status': 'Selesai / Pindah Ruang (ICU)',
+      'bed': 'KOSONG (Siap untuk Pasien Baru)',
+      'tv': 'Pindah ke Ruang ICU',
+    },
   ];
 
-  PatientTriage? _findPatient() {
-    for (final p in widget.provider.activePatients) {
-      if (p.id == widget.patientId) return p;
-    }
-    for (final p in widget.provider.historyPatients) {
-      if (p.id == widget.patientId) return p;
-    }
-    return null;
+  Map<String, String> _metaForStatus(String status) {
+    return _statusItems.firstWhere(
+      (e) => e['status'] == status,
+      orElse: () => _statusItems.first,
+    );
   }
 
   @override
@@ -41,7 +60,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
     return AnimatedBuilder(
       animation: widget.provider,
       builder: (context, _) {
-        final patient = _findPatient();
+        final patient = widget.provider.findById(widget.patientId);
         if (patient == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Detail Pasien')),
@@ -49,32 +68,21 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
           );
         }
 
-        final currentStatus = _statusOptions.contains(patient.handlingStatus)
-            ? patient.handlingStatus
-            : _statusOptions.first;
+        final meta = _metaForStatus(patient.handlingStatus);
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
+          appBar: VitaStepAppBar(
+            title: 'Detail Pasien ${patient.queueNumber}',
             centerTitle: true,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.textPrimary),
-            ),
-            title: Text(
-              'Detail Pasien ${patient.queueNumber}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.navyDark,
-              ),
-            ),
-            bottom: const PreferredSize(
-              preferredSize: Size.fromHeight(1),
-              child: Divider(height: 1, color: AppColors.borderLight),
-            ),
+            onProfileTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NurseProfileScreen(provider: widget.provider),
+                ),
+              );
+            },
           ),
           body: Column(
             children: [
@@ -84,7 +92,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Top Summary Card (matching halaman hasil kesimpulan.png)
+                      // Top Summary Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
@@ -191,7 +199,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                                 ),
                               ],
                             ),
-                            const Divider(height: 22, color: AppColors.borderLight),
+                            const Divider(
+                                height: 22, color: AppColors.borderLight),
                             const Text(
                               'Status Penanganan IGD',
                               style: TextStyle(
@@ -201,62 +210,179 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: currentStatus,
-                                  isExpanded: true,
-                                  icon: const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: AppColors.textSecondary),
-                                  items: _statusOptions
-                                      .map((st) => DropdownMenuItem(
-                                            value: st,
-                                            child: Row(
-                                              children: [
-                                                Container(
-                                                  width: 9,
-                                                  height: 9,
-                                                  decoration: const BoxDecoration(
-                                                    color: AppColors.primaryBlue,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  'Status: $st',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: AppColors.navyDark,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ))
-                                      .toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      widget.provider.updatePatient(
-                                        patient.copyWith(
-                                          handlingStatus: val,
-                                          isCompleted:
-                                              val == 'Sudah Ditangani Dokter',
+                            // Custom Interactive Status Selector (matching Status Penanganan IGD _ Interactive.png)
+                            InkWell(
+                              onTap: () => setState(
+                                  () => _statusMenuOpen = !_statusMenuOpen),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 13),
+                                decoration: BoxDecoration(
+                                  color: _statusMenuOpen
+                                      ? AppColors.primaryTintSoft
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _statusMenuOpen
+                                        ? AppColors.primaryBlue
+                                        : AppColors.border,
+                                    width: _statusMenuOpen ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 9,
+                                      height: 9,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primaryBlue,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _statusMenuOpen
+                                            ? 'Pilih Status Penanganan IGD...'
+                                            : 'Status: ${patient.handlingStatus}',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: _statusMenuOpen
+                                              ? AppColors.primaryDeep
+                                              : AppColors.navyDark,
                                         ),
-                                      );
-                                    }
-                                  },
+                                      ),
+                                    ),
+                                    Icon(
+                                      _statusMenuOpen
+                                          ? Icons.keyboard_arrow_up_rounded
+                                          : Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
+                            if (_statusMenuOpen) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                      color: AppColors.primaryBlue),
+                                ),
+                                child: Column(
+                                  children: _statusItems.map((item) {
+                                    final isSelected =
+                                        item['status'] == patient.handlingStatus;
+                                    return InkWell(
+                                      onTap: () {
+                                        final newStatus = item['status']!;
+                                        widget.provider.updatePatient(
+                                          patient.copyWith(
+                                            handlingStatus: newStatus,
+                                            isCompleted: newStatus
+                                                .startsWith('Selesai'),
+                                          ),
+                                        );
+                                        setState(() => _statusMenuOpen = false);
+                                      },
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.primaryTintSoft
+                                              : Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '• Status: ${item['status']}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w800,
+                                                color: isSelected
+                                                    ? AppColors.primaryDeep
+                                                    : AppColors.navyDark,
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 10, top: 2),
+                                              child: Text(
+                                                '${patient.bedLabel}: ${item['bed']}',
+                                                style: const TextStyle(
+                                                  fontSize: 11.5,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(11),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceSubtle,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border:
+                                      Border.all(color: AppColors.borderLight),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '• ${patient.bedLabel}: ${meta['bed']}',
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primaryDeep,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '• TV Ruang Tunggu: "Pasien ${patient.queueNumber} — ${meta['tv']}"',
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Audio Memo Player & Collapsible Original Transcript
+                      AudioMemoPlayer(
+                        fileLabel: 'Audio Triase ${patient.queueNumber}.wav',
+                        totalSeconds: patient.audioDurationSeconds,
+                      ),
+                      const SizedBox(height: 10),
+                      TranscriptAccordion(
+                        transcript: patient.originalTranscript,
                       ),
                       const SizedBox(height: 20),
                       // Section: INTEROPERABILITAS (KEMENKES SATUSEHAT)
@@ -304,7 +430,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         crossAxisAlignment:
@@ -331,9 +458,11 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
-                                            child: const Text(
-                                              'Validasi Sukses (FHIR R4)',
-                                              style: TextStyle(
+                                            child: Text(
+                                              patient.satusehatSynced
+                                                  ? 'HTTP 201 Created ✓'
+                                                  : 'Validasi Sukses (FHIR R4)',
+                                              style: const TextStyle(
                                                 fontSize: 10.5,
                                                 fontWeight: FontWeight.w700,
                                                 color: AppColors.primaryBlue,
@@ -366,7 +495,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                                 _resourceTag('Observation/Vitals-6'),
                               ],
                             ),
-                            const Divider(height: 24, color: AppColors.borderLight),
+                            const Divider(
+                                height: 24, color: AppColors.borderLight),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -394,7 +524,8 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                                       ),
                                       SizedBox(width: 4),
                                       Icon(Icons.arrow_forward_rounded,
-                                          size: 16, color: AppColors.primaryBlue),
+                                          size: 16,
+                                          color: AppColors.primaryBlue),
                                     ],
                                   ),
                                 ),
@@ -412,78 +543,13 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // Section: TANDA VITAL TERVALIDASI
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.monitor_heart_outlined,
-                                  size: 18, color: AppColors.primaryDeep),
-                              SizedBox(width: 8),
-                              Text(
-                                'TANDA VITAL\nTERVALIDASI',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.navyDark,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                'Riwayat\nPengukuran',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primaryBlue,
-                                  height: 1.2,
-                                ),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.arrow_forward_rounded,
-                                  size: 16, color: AppColors.primaryBlue),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _vitalTile('Tekanan Darah (TD)',
-                                '${patient.vitals.bpValue} mmHg', patient.vitals.bpStatus),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _vitalTile('Frekuensi Nadi',
-                                '${patient.vitals.heartRate} x/mnt', patient.vitals.hrStatus),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _vitalTile('Saturasi O2 (SpO2)',
-                                '${patient.vitals.spo2}%', patient.vitals.spo2Status),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _vitalTile('Laju Napas (RR)',
-                                '${patient.vitals.respiratoryRate} x/mnt', patient.vitals.rrStatus),
-                          ),
-                        ],
-                      ),
+                      // Toggleable Vital Signs & Periodic Measurement History
+                      VitalHistorySection(patient: patient),
                     ],
                   ),
                 ),
               ),
-              // Bottom Action Button (matching halaman hasil kesimpulan.png)
+              // Bottom Action Button
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 decoration: const BoxDecoration(
@@ -549,45 +615,6 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
           fontWeight: FontWeight.w700,
           color: AppColors.navyDark,
         ),
-      ),
-    );
-  }
-
-  Widget _vitalTile(String title, String value, String status) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 11.5, color: AppColors.textSecondary)),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.navyDark,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            status,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryBlue,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }

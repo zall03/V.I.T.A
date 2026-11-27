@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/triage_provider.dart';
 import '../detail/patient_detail_screen.dart';
+import '../profile/nurse_profile_screen.dart';
 import 'patient_queue_card.dart';
 import 'public_tv_screen.dart';
 
@@ -129,24 +130,20 @@ class QueueDashboardScreen extends StatelessWidget {
           const SizedBox(width: 4),
           InkWell(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${provider.nurseName} (${provider.nurseId}) • ${provider.selectedShift}'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NurseProfileScreen(provider: provider),
                 ),
               );
             },
             borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryDeep,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person_outline_rounded,
-                color: Colors.white,
-                size: 20,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/profil.png',
+                width: 38,
+                height: 38,
+                fit: BoxFit.cover,
               ),
             ),
           ),

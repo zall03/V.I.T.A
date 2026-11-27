@@ -138,38 +138,44 @@ class PatientQueueCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryTint,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primaryBlue,
-                                      shape: BoxShape.circle,
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryTint,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 7,
+                                      height: 7,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primaryBlue,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Text(
-                                    patient.priority.queueLabel,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.navyDark,
+                                    const SizedBox(width: 7),
+                                    Flexible(
+                                      child: Text(
+                                        patient.priority.queueLabel,
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.navyDark,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 6),
                             const Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.textSecondary,

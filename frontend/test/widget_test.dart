@@ -5,9 +5,13 @@ import 'package:vita_mobile/providers/triage_provider.dart';
 import 'package:vita_mobile/screens/auth/login_screen.dart';
 
 void main() {
-  testWidgets('Login to Queue, Public TV, and Triase Baru flow works',
+  testWidgets('Fingerprint Login, Nurse Profile, Riwayat Archive, and 4-Step Flow',
       (WidgetTester tester) async {
     final provider = TriageProvider();
+    tester.view.physicalSize = const Size(540, 960);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -16,33 +20,56 @@ void main() {
       ),
     );
 
-    // Verify Login Screen elements
-    expect(find.text('V.I.T.A.'), findsOneWidget);
-    expect(find.text('Mulai Shift'), findsOneWidget);
-
-    // Tap Mulai Shift -> navigates to MainNavigationScreen (QueueDashboardScreen)
-    await tester.ensureVisible(find.text('Mulai Shift'));
-    await tester.tap(find.text('Mulai Shift'));
+    // 1. Login via Fingerprint Modal
+    expect(find.text('Masuk Cepat dengan Sidik Jari (1–Sentuh)'), findsOneWidget);
+    await tester.ensureVisible(
+        find.text('Masuk Cepat dengan Sidik Jari (1–Sentuh)'));
+    await tester.tap(find.text('Masuk Cepat dengan Sidik Jari (1–Sentuh)'));
     await tester.pumpAndSettle();
+    expect(find.text('✓ Sidik Jari Perawat Terverifikasi'), findsOneWidget);
 
-    expect(find.text('Antrean Triase'), findsWidgets);
-    expect(find.text('Monitor TV Ruang Tunggu IGD • Aktif'), findsOneWidget);
-    expect(find.text('Triase Baru'), findsOneWidget);
-
-    // Tap Lihat TV -> opens PublicTvScreen
-    await tester.tap(find.text('Lihat TV'));
-    await tester.pumpAndSettle();
-    expect(find.text('TV Ruang Tunggu IGD • Live'), findsOneWidget);
-
-    // Return to Nurse Mode
-    await tester.tap(find.text('Mode Perawat'));
+    await tester.tap(find.text('Masuk ke Antrean Triase IGD →'));
     await tester.pumpAndSettle();
     expect(find.text('Monitor TV Ruang Tunggu IGD • Aktif'), findsOneWidget);
 
-    // Tap Triase Baru -> opens Step 1/4
+    // 2. Open Nurse Profile & toggle Edit Data
+    await tester
+        .tap(find.image(const AssetImage('assets/images/profil.png')).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Profil Perawat IGD'), findsOneWidget);
+
+    await tester.tap(find.text('✎ Edit Data'));
+    await tester.pumpAndSettle();
+    expect(find.text('✓ Simpan'), findsOneWidget);
+    await tester.tap(find.text('✓ Simpan'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Antrean IGD'));
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+
+    // 3. Switch to Riwayat tab & open Arsip Riwayat #036
+    await tester.tap(find.text('Riwayat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Riwayat Triase'), findsWidgets);
+    await tester.tap(find.text('#036'));
+    await tester.pumpAndSettle();
+    expect(find.text('Arsip Riwayat #036'), findsOneWidget);
+    expect(find.text('HTTP 201 Created ✓'), findsOneWidget);
+    await tester.tap(find.text('← Kembali ke Daftar Riwayat IGD'));
+    await tester.pumpAndSettle();
+
+    // 4. Open Triase Baru -> Step 1 -> Step 2 (Inline Edit Teks) -> Step 3
     await tester.tap(find.text('Triase Baru'));
     await tester.pumpAndSettle();
-    expect(find.text('Informasi Awal Pasien'), findsOneWidget);
-    expect(find.text('LANGKAH 1/4'), findsOneWidget);
+    expect(find.text('KATEGORI INSIDEN CEPAT (OPSIONAL)'), findsOneWidget);
+
+    await tester.tap(find.text('Lanjut ke Rekam Suara'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit Teks'));
+    await tester.pumpAndSettle();
+    expect(find.text('✓ Simpan Teks'), findsOneWidget);
+
+    await tester.tap(find.text('Ekstrak ke Form'));
+    await tester.pumpAndSettle();
+    expect(find.text('6 Parameter Klinis'), findsOneWidget);
   });
 }

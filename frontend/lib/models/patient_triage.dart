@@ -1,5 +1,21 @@
 import 'triage_enums.dart';
 
+class VitalHistoryEntry {
+  final String timeLabel;
+  final String sourceBadge;
+  final String vitalsLine;
+  final String note;
+  final bool isLatest;
+
+  const VitalHistoryEntry({
+    required this.timeLabel,
+    required this.sourceBadge,
+    required this.vitalsLine,
+    required this.note,
+    this.isLatest = false,
+  });
+}
+
 class VitalsData {
   int systolicBp;
   int diastolicBp;
@@ -41,16 +57,18 @@ class VitalsData {
           : 'Normal';
 
   String get spo2Status => spo2 < 90
-      ? 'Hipoksia Kritis (ATS 1)'
-      : spo2 < 95
-          ? 'Hipoksia Ringan'
-          : 'Normal';
+      ? 'Hipoksia Kritis (AI)'
+      : spo2 < 94
+          ? 'Hipoksia Sedang'
+          : spo2 < 96
+              ? 'Batas Bawah'
+              : 'Normal (O2)';
 
   String get tempStatus => temperatureC >= 38.0
       ? 'Febris'
       : temperatureC < 36.0
           ? 'Hipotermia'
-          : 'Afebris';
+          : 'Afebris (Normal)';
 
   VitalsData copyWith({
     int? systolicBp,
@@ -96,6 +114,11 @@ class PatientTriage {
   final String? overrideReason;
   final bool satusehatSynced;
   final String sandboxId;
+  final String originalTranscript;
+  final int audioDurationSeconds;
+  final String bedLabel;
+  final String outcomeSummary;
+  final List<VitalHistoryEntry> vitalHistory;
   final VitalsData vitals;
 
   const PatientTriage({
@@ -110,7 +133,7 @@ class PatientTriage {
     required this.objectiveTriggers,
     required this.chiefComplaint,
     required this.vitals,
-    this.caseType = 'Kasus Darurat Non-Trauma',
+    this.caseType = 'Non-Trauma',
     this.verifiedAt = '13:42 WIB',
     this.verifiedBy = 'NRS-2048 (Ns. S. Rahayu)',
     this.nikVerified = true,
@@ -122,15 +145,22 @@ class PatientTriage {
     this.overrideReason,
     this.satusehatSynced = false,
     this.sandboxId = 'SB-99412',
+    this.originalTranscript =
+        '"Pasien laki-laki 45 tahun, nyeri dada berat menjalar ke lengan kiri & sesak napas 30 menit lalu. Tensi 150/95, nadi 118, RR 28, SpO2 89%, suhu 36,8, sadar penuh."',
+    this.audioDurationSeconds = 24,
+    this.bedLabel = 'Bed Resusitasi 01',
+    this.outcomeSummary = 'Selesai Penanganan IGD',
+    this.vitalHistory = const [],
   });
 
   String get painCategoryText {
     final score = painScaleNrs;
-    if (score == null) return 'Wajib Diisi';
+    if (score == null) return '! Wajib Diisi Manual';
+    if (score >= 9) return 'Nyeri Sangat Berat';
     if (score >= 7) return 'Nyeri Berat (VAS)';
-    if (score >= 4) return 'Nyeri Sedang (VAS)';
-    if (score >= 1) return 'Nyeri Ringan (VAS)';
-    return 'Tidak Nyeri (VAS)';
+    if (score >= 5) return 'Nyeri Sedang (VAS)';
+    if (score >= 3) return 'Nyeri Ringan-Sedang';
+    return 'Nyeri Ringan (VAS)';
   }
 
   PatientTriage copyWith({
@@ -144,6 +174,7 @@ class PatientTriage {
     bool? manualOverride,
     String? overrideReason,
     bool? satusehatSynced,
+    String? originalTranscript,
     VitalsData? vitals,
   }) {
     return PatientTriage(
@@ -169,6 +200,11 @@ class PatientTriage {
       overrideReason: overrideReason ?? this.overrideReason,
       satusehatSynced: satusehatSynced ?? this.satusehatSynced,
       sandboxId: sandboxId,
+      originalTranscript: originalTranscript ?? this.originalTranscript,
+      audioDurationSeconds: audioDurationSeconds,
+      bedLabel: bedLabel,
+      outcomeSummary: outcomeSummary,
+      vitalHistory: vitalHistory,
       vitals: vitals ?? this.vitals,
     );
   }

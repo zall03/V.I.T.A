@@ -4,6 +4,7 @@ import '../../models/patient_triage.dart';
 import '../../models/triage_enums.dart';
 import '../../providers/triage_provider.dart';
 import '../../widgets/vita_step_app_bar.dart';
+import '../profile/nurse_profile_screen.dart';
 import 'triage_step4_result_screen.dart';
 
 class TriageStep3VerifyScreen extends StatefulWidget {
@@ -17,20 +18,37 @@ class TriageStep3VerifyScreen extends StatefulWidget {
   });
 
   @override
-  State<TriageStep3VerifyScreen> createState() => _TriageStep3VerifyScreenState();
+  State<TriageStep3VerifyScreen> createState() =>
+      _TriageStep3VerifyScreenState();
 }
 
 class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
   late String _complaint;
   late String _avpu;
+  bool _avpuOpen = false;
   late VitalsData _vitals;
   int? _painScale;
 
-  static const List<String> _avpuOptions = [
-    'Sadar Penuh (Alert / A)',
-    'Merespon Suara (Voice / V)',
-    'Merespon Nyeri (Pain / P)',
-    'Tidak Merespon (Unresponsive / U)',
+  // Which vital card is currently in inline `- / +` edit mode ('td', 'hr', 'rr', 'spo2', 'temp', 'pain', or null)
+  String? _editingCard;
+
+  static const List<Map<String, String>> _avpuOptions = [
+    {
+      'title': 'Sadar Penuh (Alert / A)',
+      'desc': 'Sadar penuh, bicara normal',
+    },
+    {
+      'title': 'Respon Suara (Voice / V)',
+      'desc': 'Merespons saat dipanggil suara',
+    },
+    {
+      'title': 'Respon Nyeri (Pain / P)',
+      'desc': 'Merespons hanya dengan rangsang nyeri',
+    },
+    {
+      'title': 'Tidak Sadar (Unresponsive / U)',
+      'desc': 'Pingsan / tidak ada respons (Kritis)',
+    },
   ];
 
   @override
@@ -55,125 +73,11 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
           decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           ElevatedButton(
             onPressed: () {
               setState(() => _complaint = controller.text.trim());
-              Navigator.pop(ctx);
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openPainScaleSheet() {
-    double current = (_painScale ?? 8).toDouble();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final score = current.round();
-          final desc = score >= 7
-              ? 'Nyeri Berat (VAS)'
-              : score >= 4
-                  ? 'Nyeri Sedang (VAS)'
-                  : score >= 1
-                      ? 'Nyeri Ringan (VAS)'
-                      : 'Tidak Nyeri';
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Skala Nyeri Pasien (NRS / VAS 0–10)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.navyDark,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    '$score / 10',
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primaryDeep,
-                    ),
-                  ),
-                  Text(
-                    desc,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Slider(
-                    value: current,
-                    min: 0,
-                    max: 10,
-                    divisions: 10,
-                    activeColor: AppColors.primaryBlue,
-                    label: '$score',
-                    onChanged: (v) => setModalState(() => current = v),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _painScale = score);
-                        Navigator.pop(ctx);
-                      },
-                      child: const Text('Simpan Skala Nyeri'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _editVitalDialog(String title, String initial, ValueChanged<String> onSave) {
-    final controller = TextEditingController(text: initial);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Edit $title',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.text,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () {
-              onSave(controller.text.trim());
               Navigator.pop(ctx);
             },
             child: const Text('Simpan'),
@@ -191,7 +95,8 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
     if (_vitals.spo2 < 90 || _avpu.contains('Unresponsive')) {
       priority = TriagePriority.red;
       triggers.add('SpO2 ${_vitals.spo2}% (Oksigen kritis di bawah 90%)');
-      triggers.add('Nyeri dada berat & sesak napas (Risiko kardiorespirasi tinggi)');
+      triggers.add(
+          'Nyeri dada berat & sesak napas (Risiko kardiorespirasi tinggi)');
       triggers.add(
         'RR ${_vitals.respiratoryRate} x/mnt & Nadi ${_vitals.heartRate} x/mnt di atas ambang takikardia/takipnea',
       );
@@ -200,7 +105,8 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
         _vitals.respiratoryRate > 24 ||
         pain >= 7) {
       priority = TriagePriority.yellow;
-      triggers.add('Parameter TTV di luar ambang normal atau nyeri NRS $pain/10');
+      triggers
+          .add('Parameter TTV di luar ambang normal atau nyeri NRS $pain/10');
     } else {
       triggers.add('Seluruh tanda vital dalam rentang stabil');
     }
@@ -224,17 +130,33 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
     );
   }
 
+  String _painDesc(int? score) {
+    if (score == null) return '! Wajib Diisi Manual';
+    if (score >= 9) return '✓ Nyeri Sangat Berat';
+    if (score >= 7) return '✓ Nyeri Berat (VAS)';
+    if (score >= 5) return '✓ Nyeri Sedang (VAS)';
+    if (score >= 3) return '✓ Nyeri Ringan-Sedang';
+    return '✓ Nyeri Ringan (VAS)';
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = widget.draftPatient;
-    final hasPain = _painScale != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const VitaStepAppBar(
+      appBar: VitaStepAppBar(
         title: 'Rekam Suara Triase',
         stepText: 'Langkah 3/4',
         progress: 0.75,
+        onProfileTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => NurseProfileScreen(provider: widget.provider),
+            ),
+          );
+        },
       ),
       body: Column(
         children: [
@@ -246,7 +168,8 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                 children: [
                   // Patient Strip
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.primaryTint,
                       borderRadius: BorderRadius.circular(12),
@@ -275,7 +198,8 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
@@ -315,7 +239,8 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.primaryPillBg,
                           borderRadius: BorderRadius.circular(8),
@@ -389,73 +314,147 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // AVPU Dropdown Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.borderLight),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Tingkat Kesadaran (AVPU)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  // Custom AVPU Dropdown Card (matching Tingkat Kesadaran AVPU _ Interactive.png)
+                  InkWell(
+                    onTap: () => setState(() => _avpuOpen = !_avpuOpen),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _avpuOpen
+                              ? AppColors.primaryBlue
+                              : AppColors.borderLight,
+                          width: _avpuOpen ? 1.6 : 1,
                         ),
-                        DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _avpuOptions.contains(_avpu)
-                                ? _avpu
-                                : _avpuOptions.first,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                color: AppColors.textSecondary),
-                            items: _avpuOptions
-                                .map((opt) => DropdownMenuItem(
-                                      value: opt,
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 9,
-                                            height: 9,
-                                            decoration: const BoxDecoration(
-                                              color: AppColors.primaryBlue,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
-                                              opt,
-                                              style: const TextStyle(
-                                                fontSize: 14.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.navyDark,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setState(() => _avpu = v);
-                            },
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tingkat Kesadaran (AVPU)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                width: 9,
+                                height: 9,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryBlue,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _avpu,
+                                  style: const TextStyle(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.navyDark,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                _avpuOpen
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                color: AppColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  if (_avpuOpen) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.primaryBlue),
+                      ),
+                      child: Column(
+                        children: _avpuOptions.map((opt) {
+                          final isSelected = opt['title'] == _avpu;
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                _avpu = opt['title']!;
+                                _avpuOpen = false;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primaryTintSoft
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.primaryDeep
+                                              : AppColors.navyDark,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        opt['title']!,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: isSelected
+                                              ? AppColors.primaryDeep
+                                              : AppColors.navyDark,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(left: 16, top: 2),
+                                    child: Text(
+                                      opt['desc']!,
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 18),
-                  // Section 2: TANDA VITAL (6 Parameter Klinis)
+                  // Section 2: TANDA VITAL (6 Parameter Klinis with Inline - / + Stepper)
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -483,48 +482,43 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _vitalCard(
+                        child: _interactiveVitalCard(
+                          cardKey: 'td',
                           label: 'Tekanan Darah',
                           value: _vitals.bpValue,
                           unit: 'mmHg',
                           status: _vitals.bpStatus,
-                          onTap: () => _editVitalDialog(
-                            'Tekanan Darah (Sistolik/Diastolik)',
-                            _vitals.bpValue,
-                            (val) {
-                              final parts = val.split('/');
-                              if (parts.length == 2) {
-                                final s = int.tryParse(parts[0].trim());
-                                final d = int.tryParse(parts[1].trim());
-                                if (s != null && d != null) {
-                                  setState(() => _vitals = _vitals.copyWith(
-                                      systolicBp: s, diastolicBp: d));
-                                }
-                              }
-                            },
-                          ),
+                          onDecrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  systolicBp:
+                                      (_vitals.systolicBp - 5).clamp(60, 240),
+                                  diastolicBp:
+                                      (_vitals.diastolicBp - 5).clamp(40, 140))),
+                          onIncrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  systolicBp:
+                                      (_vitals.systolicBp + 5).clamp(60, 240),
+                                  diastolicBp:
+                                      (_vitals.diastolicBp + 5).clamp(40, 140))),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _vitalCard(
+                        child: _interactiveVitalCard(
+                          cardKey: 'hr',
                           label: 'Frekuensi Nadi',
                           value: '${_vitals.heartRate}',
                           unit: 'x/mnt',
                           status: _vitals.hrStatus,
                           statusBlue: true,
-                          trailingDot: true,
-                          onTap: () => _editVitalDialog(
-                            'Frekuensi Nadi (x/mnt)',
-                            '${_vitals.heartRate}',
-                            (val) {
-                              final n = int.tryParse(val);
-                              if (n != null) {
-                                setState(() =>
-                                    _vitals = _vitals.copyWith(heartRate: n));
-                              }
-                            },
-                          ),
+                          onDecrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  heartRate:
+                                      (_vitals.heartRate - 2).clamp(30, 220))),
+                          onIncrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  heartRate:
+                                      (_vitals.heartRate + 2).clamp(30, 220))),
                         ),
                       ),
                     ],
@@ -534,28 +528,29 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _vitalCard(
+                        child: _interactiveVitalCard(
+                          cardKey: 'rr',
                           label: 'Pernapasan (RR)',
                           value: '${_vitals.respiratoryRate}',
                           unit: 'x/mnt',
                           status: _vitals.rrStatus,
                           statusBlue: true,
-                          onTap: () => _editVitalDialog(
-                            'Pernapasan RR (x/mnt)',
-                            '${_vitals.respiratoryRate}',
-                            (val) {
-                              final n = int.tryParse(val);
-                              if (n != null) {
-                                setState(() => _vitals =
-                                    _vitals.copyWith(respiratoryRate: n));
-                              }
-                            },
-                          ),
+                          onDecrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  respiratoryRate:
+                                      (_vitals.respiratoryRate - 1)
+                                          .clamp(8, 60))),
+                          onIncrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  respiratoryRate:
+                                      (_vitals.respiratoryRate + 1)
+                                          .clamp(8, 60))),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: _vitalCard(
+                        child: _interactiveVitalCard(
+                          cardKey: 'spo2',
                           label: 'Saturasi O2 (SpO2)',
                           value: '${_vitals.spo2}%',
                           unit: '',
@@ -563,18 +558,12 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                           highlightedBg: true,
                           valueBlue: true,
                           statusBlue: true,
-                          trailingExclamation: true,
-                          onTap: () => _editVitalDialog(
-                            'Saturasi SpO2 (%)',
-                            '${_vitals.spo2}',
-                            (val) {
-                              final n = int.tryParse(val);
-                              if (n != null) {
-                                setState(
-                                    () => _vitals = _vitals.copyWith(spo2: n));
-                              }
-                            },
-                          ),
+                          onDecrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  spo2: (_vitals.spo2 - 1).clamp(70, 100))),
+                          onIncrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  spo2: (_vitals.spo2 + 1).clamp(70, 100))),
                         ),
                       ),
                     ],
@@ -584,108 +573,46 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _vitalCard(
+                        child: _interactiveVitalCard(
+                          cardKey: 'temp',
                           label: 'Suhu Tubuh',
                           value: _vitals.tempComma,
                           unit: '°C',
                           status: _vitals.tempStatus,
-                          boldStatus: true,
-                          onTap: () => _editVitalDialog(
-                            'Suhu Tubuh (°C)',
-                            _vitals.temperatureC.toStringAsFixed(1),
-                            (val) {
-                              final n = double.tryParse(val.replaceAll(',', '.'));
-                              if (n != null) {
-                                setState(() => _vitals =
-                                    _vitals.copyWith(temperatureC: n));
-                              }
-                            },
-                          ),
+                          onDecrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  temperatureC: ((_vitals.temperatureC - 0.1)
+                                      .clamp(34.0, 42.0)))),
+                          onIncrement: () => setState(() => _vitals = _vitals
+                              .copyWith(
+                                  temperatureC: ((_vitals.temperatureC + 0.1)
+                                      .clamp(34.0, 42.0)))),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: InkWell(
-                          onTap: _openPainScaleSheet,
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryTintSoft,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: hasPain
-                                    ? AppColors.primaryBlue
-                                    : AppColors.primaryBorder,
-                                width: hasPain ? 1.4 : 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        'Skala Nyeri (0-10) *',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primaryBlue,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Icon(Icons.info_outline_rounded,
-                                        size: 16, color: AppColors.primaryBlue),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                if (!hasPain) ...[
-                                  const Text(
-                                    'Sentuh Isi Skala',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.primaryBlue,
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Wajib Diisi',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primaryBlue,
-                                    ),
-                                  ),
-                                ] else ...[
-                                  Text(
-                                    '$_painScale / 10',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.navyDark,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '✓ ${_painScale! >= 7 ? "Nyeri Berat (VAS)" : _painScale! >= 4 ? "Nyeri Sedang (VAS)" : "Nyeri Ringan (VAS)"}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.navyDark,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                        child: _interactiveVitalCard(
+                          cardKey: 'pain',
+                          label: 'Skala Nyeri (0-10) *',
+                          value: _painScale == null
+                              ? 'Sentuh Isi Skala'
+                              : '$_painScale / 10',
+                          unit: '',
+                          status: _painDesc(_painScale),
+                          highlightedBg: true,
+                          valueBlue: true,
+                          statusBlue: true,
+                          compactValue: _painScale == null,
+                          onStartEdit: () {
+                            setState(() {
+                              _painScale ??= 8;
+                              _editingCard = 'pain';
+                            });
+                          },
+                          onDecrement: () => setState(() => _painScale =
+                              ((_painScale ?? 8) - 2).clamp(0, 10)),
+                          onIncrement: () => setState(() => _painScale =
+                              ((_painScale ?? 8) + 2).clamp(0, 10)),
                         ),
                       ),
                     ],
@@ -745,29 +672,40 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
     );
   }
 
-  Widget _vitalCard({
+  Widget _interactiveVitalCard({
+    required String cardKey,
     required String label,
     required String value,
     required String unit,
     required String status,
-    required VoidCallback onTap,
+    required VoidCallback onDecrement,
+    required VoidCallback onIncrement,
+    VoidCallback? onStartEdit,
     bool highlightedBg = false,
     bool valueBlue = false,
     bool statusBlue = false,
-    bool boldStatus = false,
-    bool trailingDot = false,
-    bool trailingExclamation = false,
+    bool compactValue = false,
   }) {
+    final isEditing = _editingCard == cardKey;
+
     return InkWell(
-      onTap: onTap,
+      onTap: isEditing
+          ? null
+          : (onStartEdit ?? () => setState(() => _editingCard = cardKey)),
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: highlightedBg ? AppColors.primaryTintSoft : Colors.white,
+          color: (highlightedBg || isEditing)
+              ? AppColors.primaryTintSoft
+              : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: highlightedBg ? AppColors.primaryTint : AppColors.borderLight,
+            color: (highlightedBg || isEditing)
+                ? AppColors.primaryBlue
+                : AppColors.borderLight,
+            width: isEditing ? 1.8 : 1.1,
           ),
         ),
         child: Column(
@@ -780,79 +718,145 @@ class _TriageStep3VerifyScreenState extends State<TriageStep3VerifyScreen> {
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: highlightedBg
-                          ? AppColors.primaryBlue
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: (highlightedBg || isEditing)
+                          ? AppColors.primaryDeep
                           : AppColors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (trailingDot)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryBlue,
-                      shape: BoxShape.circle,
+                InkWell(
+                  onTap: () {
+                    if (isEditing) {
+                      setState(() => _editingCard = null);
+                    } else if (onStartEdit != null) {
+                      onStartEdit();
+                    } else {
+                      setState(() => _editingCard = cardKey);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isEditing ? AppColors.primaryBlue : Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isEditing
+                            ? AppColors.primaryBlue
+                            : AppColors.primaryBorder,
+                      ),
+                    ),
+                    child: Icon(
+                      isEditing ? Icons.check_rounded : Icons.edit_outlined,
+                      size: 14,
+                      color: isEditing ? Colors.white : AppColors.primaryBlue,
                     ),
                   ),
-                if (trailingExclamation)
-                  const Text(
-                    '!',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: valueBlue ? AppColors.primaryBlue : AppColors.navyDark,
-                  ),
-                ),
-                if (unit.isNotEmpty) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    unit,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
+            if (isEditing)
+              Row(
+                children: [
+                  _stepperBtn('−', onDecrement),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.navyDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
+                  _stepperBtn('+', onIncrement),
                 ],
-              ],
-            ),
-            const SizedBox(height: 4),
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: compactValue ? 15 : 20,
+                        fontWeight: FontWeight.w900,
+                        color: valueBlue
+                            ? AppColors.primaryDeep
+                            : AppColors.navyDark,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (unit.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      unit,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            const SizedBox(height: 6),
             Text(
               status,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: (statusBlue || boldStatus)
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                fontSize: 11.5,
+                fontWeight: statusBlue ? FontWeight.w700 : FontWeight.w500,
                 color: statusBlue
                     ? AppColors.primaryBlue
-                    : boldStatus
-                        ? AppColors.navyDark
-                        : AppColors.textSecondary,
+                    : AppColors.textSecondary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stepperBtn(String symbol, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 28,
+        height: 30,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primaryBlue, width: 1.2),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          symbol,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: AppColors.primaryDeep,
+          ),
         ),
       ),
     );

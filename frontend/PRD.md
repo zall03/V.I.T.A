@@ -7,7 +7,7 @@
 
 | Atribut | Detail |
 | :--- | :--- |
-| **Nama Produk** | V.I.T.A. (Voice Integrated Triage Assessment) |
+| **Nama Produk** | V.I.T.A. (Voice Integra ted Triage Assessment) |
 | **Versi Dokumen** | v1.0 (MVP — Target 4 Minggu) |
 | **Tim Pengembang** | **wishweluck** — M. Haris Tri Nugraha (Leader), M. Rizal Jamali, Sandi Wira Priangga, Arfa Zulhilmi |
 | **Kategori Kasus** | Case 2: Stronger Communities and Everyday Services |
