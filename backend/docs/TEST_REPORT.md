@@ -1,5 +1,17 @@
 # Actual test evidence
 
+Biometric increment: final flutter test 3 passed; flutter analyze no issues (4.7s);
+Android debug APK built (43s). Tests cover fallback, not actual sensor verification.
+
+Admin recovery increment: gofmt, go build ./..., go vet ./..., go test ./... passed.
+Recovery database transaction and remote command NOT TESTED against live database.
+
+Android debug build: raised frontend Android Gradle Plugin 9.1.0 to 9.1.1 to satisfy
+installed Flutter minimum. `flutter build apk --debug
+--dart-define=API_BASE_URL=https://vita.senindrai.my.id` passed (135.1s), output
+frontend/build/app/outputs/flutter-apk/app-debug.apk. Gradle/AGP/Kotlin future-support
+warnings remain. Device installation and live API requests NOT TESTED by this build.
+
 SSH workflow: source added; GitHub Actions execution, shell runtime and remote server
 deployment NOT TESTED in this session. No credentials accessed or external deploy run.
 

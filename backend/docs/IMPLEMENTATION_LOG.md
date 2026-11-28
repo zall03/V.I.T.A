@@ -1,5 +1,17 @@
 # Implementation log
 
+Biometric increment: native local_auth, secure refresh storage, explicit opt-in,
+refresh persistence, end-shift credential deletion and safe password fallback.
+Fixed cross-drive Kotlin compilation; APK built. Device acceptance remains pending.
+
+Development admin recovery: cmd/seed accepts reset-admin-password, requires existing
+active admin and APP_ENV=development, uses configured seed email/password, hashes
+with Argon2id, increments token version, revokes refresh sessions and audits in one
+transaction. Existing seed overwrite refusal retained. No server reset executed.
+
+Android build fix: settings.gradle.kts AGP 9.1.1; actual debug APK build passed.
+No dependency-validation bypass. Future-support warnings remain; see TEST_REPORT.md.
+
 Added automatic main-branch SSH deployment with pinned actions, isolated PostgreSQL
 CI tests, verified SSH host keys, release directories, persistent server env, explicit
 migrations and health checks. No push/deployment executed during implementation.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../providers/triage_provider.dart';
 import '../main_navigation_screen.dart';
@@ -15,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   late String _selectedShift;
   bool _isDropdownOpen = false;
-  bool _showPin = true;
+  bool _showPin = false;
   late final TextEditingController _nurseIdController;
   final List<TextEditingController> _pinControllers = [
     TextEditingController(text: '4'),
@@ -25,12 +26,15 @@ class _LoginScreenState extends State<LoginScreen> {
   ];
   final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
   int _activePinIndex = 3;
+  final _passwordController = TextEditingController();
+  bool _busy = false;
+  bool _enableBiometrics = false;
 
   @override
   void initState() {
     super.initState();
     _selectedShift = widget.provider.selectedShift;
-    _nurseIdController = TextEditingController(text: widget.provider.nurseId);
+    _nurseIdController = TextEditingController();
     for (int i = 0; i < 4; i++) {
       _pinFocusNodes[i].addListener(() {
         if (_pinFocusNodes[i].hasFocus && mounted) {
@@ -43,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _nurseIdController.dispose();
+    _passwordController.dispose();
     for (final c in _pinControllers) {
       c.dispose();
     }
@@ -52,7 +57,44 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleStartShift() {
+  Future<void> _handleStartShift() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.provider.login(
+        _nurseIdController.text.trim(),
+        _passwordController.text,
+      );
+      if (_enableBiometrics) {
+        try {
+          await widget.provider.api.enableBiometrics();
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Biometrik tidak dapat diaktifkan. Login password tetap tersedia.',
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Login gagal. Periksa ID akun/email, password, dan koneksi.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
     widget.provider.setShift(_selectedShift);
     widget.provider.setNurseId(_nurseIdController.text);
     Navigator.of(context).pushReplacement(
@@ -62,7 +104,38 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showFingerprintModal() {
+  Future<void> _showFingerprintModal() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final identity = await widget.provider.api.biometricLogin();
+      if (identity['role'] != 'nurse') {
+        await widget.provider.api.logout();
+        throw StateError('nurse_required');
+      }
+      widget.provider.identity = identity;
+      widget.provider.setNurseId(identity['id'] as String);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(provider: widget.provider),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Biometrik dibatalkan/tidak tersedia atau sesi berakhir. Login password dan aktifkan biometrik terlebih dahulu.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void unusedDemoFingerprintModal() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -215,8 +288,10 @@ class _LoginScreenState extends State<LoginScreen> {
               // Registered Nurse ID Banner (matching Login - 1. Ketik ID Perawat.png)
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryPillBg,
                   borderRadius: BorderRadius.circular(12),
@@ -268,7 +343,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 14),
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.inputFill,
                           borderRadius: BorderRadius.circular(12),
@@ -374,7 +451,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.inputFill,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primaryBlue, width: 1.5),
+                        border: Border.all(
+                          color: AppColors.primaryBlue,
+                          width: 1.5,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -396,8 +476,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                                 isDense: true,
-                                contentPadding:
-                                    EdgeInsets.symmetric(vertical: 14),
+                                contentPadding: EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                           ),
@@ -414,7 +495,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'MASUKAN PIN',
+                          'PASSWORD',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
@@ -427,7 +508,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
                             child: Row(
                               children: [
                                 Icon(
@@ -453,65 +536,89 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      children: List.generate(4, (index) {
-                        final isActive = _activePinIndex == index;
-                        final obscureBox =
-                            !_showPin || (index == 3 && !_pinFocusNodes[3].hasFocus);
-                        return Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(right: index < 3 ? 10 : 0),
-                            child: Container(
-                              height: 54,
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? Colors.white
-                                    : AppColors.inputFill,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isActive
-                                      ? AppColors.primaryBlue
-                                      : AppColors.border,
-                                  width: isActive ? 2 : 1,
-                                ),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: !_showPin,
+                      decoration: const InputDecoration(
+                        labelText: 'Password akun',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    Offstage(
+                      offstage: true,
+                      child: Row(
+                        children: List.generate(4, (index) {
+                          final isActive = _activePinIndex == index;
+                          final obscureBox =
+                              !_showPin ||
+                              (index == 3 && !_pinFocusNodes[3].hasFocus);
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: index < 3 ? 10 : 0,
                               ),
-                              alignment: Alignment.center,
-                              child: TextField(
-                                controller: _pinControllers[index],
-                                focusNode: _pinFocusNodes[index],
-                                textAlign: TextAlign.center,
-                                keyboardType: TextInputType.number,
-                                maxLength: 1,
-                                obscureText: obscureBox,
-                                obscuringCharacter: '•',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
+                              child: Container(
+                                height: 54,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? Colors.white
+                                      : AppColors.inputFill,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isActive
+                                        ? AppColors.primaryBlue
+                                        : AppColors.border,
+                                    width: isActive ? 2 : 1,
+                                  ),
                                 ),
-                                decoration: const InputDecoration(
-                                  counterText: '',
-                                  border: InputBorder.none,
-                                  isDense: true,
+                                alignment: Alignment.center,
+                                child: TextField(
+                                  controller: _pinControllers[index],
+                                  focusNode: _pinFocusNodes[index],
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 1,
+                                  obscureText: obscureBox,
+                                  obscuringCharacter: '•',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    counterText: '',
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                  onTap: () =>
+                                      setState(() => _activePinIndex = index),
+                                  onChanged: (val) {
+                                    if (val.isNotEmpty && index < 3) {
+                                      _pinFocusNodes[index + 1].requestFocus();
+                                    }
+                                  },
                                 ),
-                                onTap: () =>
-                                    setState(() => _activePinIndex = index),
-                                onChanged: (val) {
-                                  if (val.isNotEmpty && index < 3) {
-                                    _pinFocusNodes[index + 1].requestFocus();
-                                  }
-                                },
                               ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
               // Primary CTA: Mulai Shift
+              CheckboxListTile(
+                value: _enableBiometrics,
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() => _enableBiometrics = v ?? false),
+                title: const Text('Aktifkan biometrik setelah login'),
+                subtitle: const Text(
+                  'Hanya untuk perangkat pribadi. Semua biometrik terdaftar di HP dapat membuka sesi ini.',
+                ),
+              ),
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -523,7 +630,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  onPressed: _handleStartShift,
+                  onPressed: _busy ? null : _handleStartShift,
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -549,7 +656,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: OutlinedButton.styleFrom(
                     backgroundColor: AppColors.primaryTintSoft,
                     foregroundColor: AppColors.navyDark,
-                    side: const BorderSide(color: AppColors.primaryBorderStrong),
+                    side: const BorderSide(
+                      color: AppColors.primaryBorderStrong,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),

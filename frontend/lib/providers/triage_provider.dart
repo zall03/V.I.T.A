@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
+
 import '../models/patient_triage.dart';
 import '../models/triage_enums.dart';
+import '../core/api/vita_api.dart';
 
 class TriageProvider extends ChangeNotifier {
+  final api = VitaApi(
+    baseUrl: const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'http://localhost:8080',
+    ),
+  );
+  Map<String, dynamic>? identity;
+  Future<void> login(String id, String password) async {
+    final result = await api.login(id, password);
+    if (result['role'] != 'nurse') {
+      await api.logout();
+      throw const ApiFailure(403, 'nurse_required');
+    }
+    identity = result;
+    _nurseId = result['id'] as String;
+    notifyListeners();
+  }
+
   static const List<String> shiftOptions = [
     'IGD — Shift Pagi (07:00 - 14:00)',
     'IGD — Shift Siang (14:00 - 21:00)',
@@ -42,9 +62,9 @@ class TriageProvider extends ChangeNotifier {
 
   String get selectedShift => _selectedShift;
   String get nurseId => _nurseId;
-  String get nurseName => _nurseName;
-  String get nurseFullName => _nurseFullName;
-  String get nurseRole => _nurseRole;
+  String get nurseName => identity?['name'] as String? ?? _nurseName;
+  String get nurseFullName => identity?['name'] as String? ?? _nurseFullName;
+  String get nurseRole => identity?['role'] as String? ?? _nurseRole;
   String get assignedZone => _assignedZone;
   String get phoneAndMic => _phoneAndMic;
   bool get profileUpdated => _profileUpdated;
@@ -69,11 +89,7 @@ class TriageProvider extends ChangeNotifier {
     }
   }
 
-  void updateNurseProfile({
-    String? shift,
-    String? zone,
-    String? phoneAndMic,
-  }) {
+  void updateNurseProfile({String? shift, String? zone, String? phoneAndMic}) {
     if (shift != null) _selectedShift = shift;
     if (zone != null) _assignedZone = zone;
     if (phoneAndMic != null) _phoneAndMic = phoneAndMic;
@@ -320,8 +336,7 @@ class TriageProvider extends ChangeNotifier {
         satusehatSynced: true,
         bedLabel: 'Bed Observasi Anak 02',
         outcomeSummary: 'Pasien #036 — Nebulisasi Selesai (Pulang)',
-        originalTranscript:
-            '"Pasien anak laki-laki 6 tahun, riwayat asma bronkial akut, sesak napas mereda pasca nebulisasi Ventolin. SpO2 naik ke 98%, nadi 104, RR 22, suhu 36,7, sadar penuh."',
+        originalTranscript: '"Pasien anak laki-laki 6 tahun, riwayat asma bronkial akut, sesak napas mereda pasca nebulisasi Ventolin. SpO2 naik ke 98%, nadi 104, RR 22, suhu 36,7, sadar penuh."',
         vitalHistory: const [
           VitalHistoryEntry(
             timeLabel: '12:40 WIB • Evaluasi Pasca-Nebulisasi',

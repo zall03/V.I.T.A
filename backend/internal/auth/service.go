@@ -33,7 +33,20 @@ func (s *Service) issue(ctx context.Context, q *database.Queries, u users.User, 
 	return Pair{access, raw, "Bearer", int(s.Tokens.Lifetime() / time.Second)}, e
 }
 func (s *Service) Login(ctx context.Context, d LoginDTO) (Pair, error) {
-	u, e := s.Repo.ByEmail(ctx, strings.ToLower(d.Email))
+	var u users.User
+	var e error
+	if d.NurseID != "" {
+		if d.Email != "" {
+			return Pair{}, platform.Invalid
+		}
+		id, err := uuid.Parse(d.NurseID)
+		if err != nil {
+			return Pair{}, platform.Invalid
+		}
+		u, e = s.Repo.Get(ctx, id)
+	} else {
+		u, e = s.Repo.ByEmail(ctx, strings.ToLower(d.Email))
+	}
 	if errors.Is(e, pgx.ErrNoRows) {
 		platform.VerifyPassword(s.DummyHash, d.Password)
 		return Pair{}, platform.Unauthorized

@@ -1,5 +1,8 @@
 # Resume / remaining work
 
+Biometric acceptance: test real Android sensor opt-in, restart/unlock, cancellation,
+expired refresh, logout deletion; validate iOS Keychain entitlements/build separately.
+
 Run new deployment workflow on main after configuring development environment and
 server env; diagnose CI/database errors without skipping tests. Add HTTPS ingress
 and Flutter web hosting separately. See SSH_DEPLOYMENT.md.

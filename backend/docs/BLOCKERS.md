@@ -1,5 +1,7 @@
 # Blockers
 
+Biometric physical sensor test and iOS toolchain/signing unavailable in agent checks.
+
 SSH workflow requires GitHub development secrets/variables, server Docker permissions
 and /opt/vita/shared/backend.env; remote deployment remains unverified.
 

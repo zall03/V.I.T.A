@@ -1,5 +1,9 @@
 # Project status
 
+Biometric mobile integration added, application-gated secure token storage and refresh.
+Android debug build/analyze/3 tests pass; actual sensor/iOS validation NOT TESTED.
+See BIOMETRIC_LOGIN.md for security limits and acceptance steps.
+
 SSH automation added: .github/workflows/deploy.yml and scripts/deploy-server.sh.
 Push main triggers test gate then development deployment. Remote execution NOT TESTED.
 One-time secrets/server environment setup required; see SSH_DEPLOYMENT.md.

@@ -1,7 +1,8 @@
 package auth
 
 type LoginDTO struct {
-	Email    string `json:"email" validate:"required,email,max=254"`
+	Email    string `json:"email" validate:"required_without=NurseID,omitempty,email,max=254"`
+	NurseID  string `json:"nurse_id" validate:"required_without=Email,omitempty,uuid"`
 	Password string `json:"password" validate:"required,max=128"`
 }
 type RefreshDTO struct {

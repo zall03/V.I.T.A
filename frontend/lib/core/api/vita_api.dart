@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'biometric_session.dart';
+
 import 'package:http/http.dart' as http;
 
 /// Backend transport. Credentials remain in memory; never use demo patient IDs.
@@ -12,6 +14,26 @@ class VitaApi {
   String? _accessToken;
   String? _refreshToken;
   Future<void>? _refreshing;
+  final biometrics = BiometricSession();
+  bool _biometricEnabled = false;
+
+  Future<bool> enableBiometrics() async {
+    if (_refreshToken == null || !await biometrics.authenticate()) return false;
+    await biometrics.save(baseUrl, _refreshToken!);
+    _biometricEnabled = true;
+    return true;
+  }
+
+  Future<Map<String, dynamic>> biometricLogin() async {
+    final token = await biometrics.unlock(baseUrl);
+    if (token == null) {
+      throw const ApiFailure(401, 'biometric_session_unavailable');
+    }
+    _refreshToken = token;
+    _biometricEnabled = true;
+    await refresh();
+    return me();
+  }
 
   Future<dynamic> _send(
     String method,
@@ -55,9 +77,14 @@ class VitaApi {
       'POST',
       '/auth/login',
       authenticated: false,
-      body: {'email': email, 'password': password},
+      body: {
+        email.contains('@') ? 'email' : 'nurse_id': email,
+        'password': password,
+      },
     );
     _setTokens(data);
+    if (biometrics.supported) await biometrics.clear(baseUrl);
+    _biometricEnabled = false;
     return me();
   }
 
@@ -86,7 +113,10 @@ class VitaApi {
           body: {'refresh_token': _refreshToken},
         ),
       );
+      if (_biometricEnabled) await biometrics.save(baseUrl, _refreshToken!);
     } catch (_) {
+      if (_biometricEnabled) await biometrics.clear(baseUrl);
+      _biometricEnabled = false;
       _accessToken = null;
       _refreshToken = null;
       rethrow;
@@ -105,6 +135,8 @@ class VitaApi {
     } finally {
       _accessToken = null;
       _refreshToken = null;
+      _biometricEnabled = false;
+      await biometrics.clear(baseUrl);
     }
   }
 

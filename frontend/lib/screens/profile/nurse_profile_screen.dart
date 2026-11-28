@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/constants/app_colors.dart';
 import '../../providers/triage_provider.dart';
 import '../auth/login_screen.dart';
@@ -26,7 +27,11 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
     _draftMic = widget.provider.phoneAndMic;
   }
 
-  void _cycleOption(List<String> list, String current, ValueChanged<String> onSet) {
+  void _cycleOption(
+    List<String> list,
+    String current,
+    ValueChanged<String> onSet,
+  ) {
     final idx = list.indexOf(current);
     final next = list[(idx + 1) % list.length];
     setState(() => onSet(next));
@@ -47,11 +52,16 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
     );
   }
 
-  void _endShift() {
+  Future<void> _endShift() async {
+    try {
+      await widget.provider.api.logout();
+    } catch (_) {
+      // Local credentials are removed by logout even when server is unavailable.
+    }
+    widget.provider.identity = null;
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => LoginScreen(provider: widget.provider),
-      ),
+      MaterialPageRoute(builder: (_) => LoginScreen(provider: widget.provider)),
       (_) => false,
     );
   }
@@ -70,8 +80,10 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
             centerTitle: true,
             leading: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_rounded,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.textPrimary,
+              ),
             ),
             title: const Text(
               'Profil Perawat IGD',
@@ -131,7 +143,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                           color: AppColors.primaryBlue,
                                           shape: BoxShape.circle,
                                           border: Border.all(
-                                              color: Colors.white, width: 2),
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -166,14 +180,16 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                         children: [
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 4),
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: AppColors.primaryTintSoft,
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                               border: Border.all(
-                                                  color:
-                                                      AppColors.primaryBorder),
+                                                color: AppColors.primaryBorder,
+                                              ),
                                             ),
                                             child: Text(
                                               'ID: ${p.nurseId}',
@@ -186,13 +202,16 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 4),
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: AppColors.surfaceSubtle,
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                               border: Border.all(
-                                                  color: AppColors.border),
+                                                color: AppColors.border,
+                                              ),
                                             ),
                                             child: const Text(
                                               '✓ STR & SIP Aktif',
@@ -210,22 +229,30 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                 ),
                               ],
                             ),
-                            const Divider(height: 26, color: AppColors.borderLight),
+                            const Divider(
+                              height: 26,
+                              color: AppColors.borderLight,
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
                                   child: _metricCol(
-                                      '${p.totalActiveCount + 11} Pasien',
-                                      'Triase Shift Ini'),
+                                    '${p.totalActiveCount + 11} Pasien',
+                                    'Triase Shift Ini',
+                                  ),
                                 ),
                                 Expanded(
-                                  child:
-                                      _metricCol('34 Detik', 'Rata-rata Triase'),
+                                  child: _metricCol(
+                                    '34 Detik',
+                                    'Rata-rata Triase',
+                                  ),
                                 ),
                                 Expanded(
-                                  child:
-                                      _metricCol('100% Valid', 'Kepatuhan IITT'),
+                                  child: _metricCol(
+                                    '100% Valid',
+                                    'Kepatuhan IITT',
+                                  ),
                                 ),
                               ],
                             ),
@@ -258,8 +285,8 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                     _isEditMode
                                         ? '✎ MODE EDIT PROFIL & TUGAS IGD'
                                         : p.profileUpdated
-                                            ? '✓ PROFIL & TUGAS IGD (DIPERBARUI)'
-                                            : '📋 DATA TUGAS & PERANGKAT IGD',
+                                        ? '✓ PROFIL & TUGAS IGD (DIPERBARUI)'
+                                        : '📋 DATA TUGAS & PERANGKAT IGD',
                                     style: TextStyle(
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w800,
@@ -277,7 +304,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                       foregroundColor: Colors.white,
                                       minimumSize: const Size(0, 34),
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 6),
+                                        horizontal: 14,
+                                        vertical: 6,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -286,8 +315,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                     child: const Text(
                                       '✓ Simpan',
                                       style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   )
                                 else
@@ -295,7 +325,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                     style: OutlinedButton.styleFrom(
                                       minimumSize: const Size(0, 34),
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 6),
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -311,8 +343,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                     child: const Text(
                                       '✎ Edit Data',
                                       style: TextStyle(
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w700),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                               ],
@@ -326,14 +359,16 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                             const SizedBox(height: 14),
                             _fieldBox(
                               label: 'SHIFT JAGA IGD AKTIF',
-                              value: _isEditMode ? _draftShift : p.selectedShift,
+                              value: _isEditMode
+                                  ? _draftShift
+                                  : p.selectedShift,
                               editable: _isEditMode,
                               onTap: _isEditMode
                                   ? () => _cycleOption(
-                                        TriageProvider.shiftOptions,
-                                        _draftShift,
-                                        (v) => _draftShift = v,
-                                      )
+                                      TriageProvider.shiftOptions,
+                                      _draftShift,
+                                      (v) => _draftShift = v,
+                                    )
                                   : null,
                             ),
                             const SizedBox(height: 14),
@@ -343,10 +378,10 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                               editable: _isEditMode,
                               onTap: _isEditMode
                                   ? () => _cycleOption(
-                                        TriageProvider.zoneOptions,
-                                        _draftZone,
-                                        (v) => _draftZone = v,
-                                      )
+                                      TriageProvider.zoneOptions,
+                                      _draftZone,
+                                      (v) => _draftZone = v,
+                                    )
                                   : null,
                             ),
                             const SizedBox(height: 14),
@@ -356,10 +391,10 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                               editable: _isEditMode,
                               onTap: _isEditMode
                                   ? () => _cycleOption(
-                                        TriageProvider.micOptions,
-                                        _draftMic,
-                                        (v) => _draftMic = v,
-                                      )
+                                      TriageProvider.micOptions,
+                                      _draftMic,
+                                      (v) => _draftMic = v,
+                                    )
                                   : null,
                             ),
                           ],
@@ -391,8 +426,10 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                                   foregroundColor: Colors.white,
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                icon: const Icon(Icons.arrow_back_rounded,
-                                    size: 18),
+                                icon: const Icon(
+                                  Icons.arrow_back_rounded,
+                                  size: 18,
+                                ),
                                 label: const Text('Antrean IGD'),
                               ),
                             ),
@@ -478,7 +515,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
-              color: editable ? AppColors.primaryTintSoft : AppColors.surfaceSubtle,
+              color: editable
+                  ? AppColors.primaryTintSoft
+                  : AppColors.surfaceSubtle,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: editable ? AppColors.primaryBlue : AppColors.border,
@@ -494,7 +533,9 @@ class _NurseProfileScreenState extends State<NurseProfileScreen> {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
-                      color: editable ? AppColors.primaryDeep : AppColors.navyDark,
+                      color: editable
+                          ? AppColors.primaryDeep
+                          : AppColors.navyDark,
                     ),
                   ),
                 ),

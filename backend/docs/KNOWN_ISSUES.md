@@ -1,5 +1,8 @@
 # Known issues
 
+Biometric refresh storage uses application-level authentication gate, not hardware
+authentication-bound access. iOS signing/entitlements and sensor acceptance untested.
+
 - Database migrations and transaction behavior remain unverified against live DB.
 - Phase 2 OpenAPI clinical response schemas are incomplete.
 - Patient PATCH replaces demographics rather than partial field merge (documented).

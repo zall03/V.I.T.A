@@ -1,5 +1,8 @@
 # Master execution plan
 
+Mobile biometric login increment built on Android; device acceptance and stronger
+hardware auth-bound storage remain pending. See BIOMETRIC_LOGIN.md.
+
 Canonical requirements: `../prd disini/PRD.md` v1.0. Preserve existing implementation.
 
 1. FR-01/02/18/19: review foundation, facility management, configurable TTLs,
